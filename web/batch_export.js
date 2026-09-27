@@ -43,196 +43,7 @@ function hideExportWidgets(node) {
   }
 }
 
-/**
- * 网页端原生可视化文件夹浏览弹窗
- * 100% 在当前浏览器画布上弹出，零依赖操作系统弹窗，绝不死锁、绝不被遮挡
- */
-function openFolderModal(currentPath, onSelect) {
-  const backdrop = document.createElement("div");
-  backdrop.className = "bm-folder-modal-backdrop";
 
-  backdrop.innerHTML = `
-    <div class="bm-folder-modal-dialog">
-      <div class="bm-modal-header">
-        <div class="bm-modal-title">
-          <span>📁</span>
-          <span>选择保存目录</span>
-        </div>
-        <button type="button" class="bm-modal-close" id="bm-modal-close">✕</button>
-      </div>
-
-      <div class="bm-modal-body">
-        <!-- 快捷位置与盘符 -->
-        <div class="bm-modal-shortcuts" id="bm-modal-shortcuts">
-          <span style="font-size: 11px; color: #71717a; margin-right: 4px;">快捷位置:</span>
-        </div>
-
-        <!-- 当前路径输入栏与导航操作 -->
-        <div class="bm-modal-path-row">
-          <button type="button" class="bm-modal-btn-sub" id="bm-modal-btn-up" title="返回上一层目录">⬆️ 上一级</button>
-          <input type="text" class="bm-modal-path-input" id="bm-modal-cur-path" value="${currentPath || ''}" spellcheck="false" />
-          <button type="button" class="bm-modal-btn-sub" id="bm-modal-btn-mkdir" title="在当前目录下新建文件夹">➕ 新建</button>
-        </div>
-
-        <!-- 文件夹滚动视窗 -->
-        <div class="bm-modal-folder-list" id="bm-modal-folder-list">
-          <div class="bm-modal-empty">正在加载目录列表...</div>
-        </div>
-      </div>
-
-      <div class="bm-modal-footer">
-        <button type="button" class="bm-modal-btn-sub" id="bm-modal-btn-open-sys" title="在系统资源管理器中打开此文件夹">↗️ 打开文件夹</button>
-        <div class="bm-modal-footer-right">
-          <button type="button" class="bm-modal-btn-cancel" id="bm-modal-btn-cancel">取消</button>
-          <button type="button" class="bm-modal-btn-confirm" id="bm-modal-btn-confirm">✅ 确定选择此目录</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(backdrop);
-
-  const closeBtn = backdrop.querySelector("#bm-modal-close");
-  const cancelBtn = backdrop.querySelector("#bm-modal-btn-cancel");
-  const confirmBtn = backdrop.querySelector("#bm-modal-btn-confirm");
-  const openSysBtn = backdrop.querySelector("#bm-modal-btn-open-sys");
-  const upBtn = backdrop.querySelector("#bm-modal-btn-up");
-  const mkdirBtn = backdrop.querySelector("#bm-modal-btn-mkdir");
-  const pathInput = backdrop.querySelector("#bm-modal-cur-path");
-  const shortcutsWrap = backdrop.querySelector("#bm-modal-shortcuts");
-  const folderList = backdrop.querySelector("#bm-modal-folder-list");
-
-  let activePath = currentPath || "";
-  let parentPath = null;
-
-  function closeModal() {
-    backdrop.remove();
-  }
-
-  closeBtn.addEventListener("click", closeModal);
-  cancelBtn.addEventListener("click", closeModal);
-  backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) closeModal();
-  });
-
-  confirmBtn.addEventListener("click", () => {
-    const finalPath = pathInput.value.trim() || activePath;
-    if (finalPath && onSelect) {
-      onSelect(finalPath);
-    }
-    closeModal();
-  });
-
-  openSysBtn.addEventListener("click", async () => {
-    try {
-      await fetch("/batch_master/open_folder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder_path: pathInput.value.trim() || activePath })
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  });
-
-  async function loadDirectory(targetPath) {
-    folderList.innerHTML = `<div class="bm-modal-empty">正在加载目录列表...</div>`;
-    try {
-      const resp = await fetch("/batch_master/list_folders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: targetPath })
-      });
-      const data = await resp.json();
-      if (!data.success) {
-        folderList.innerHTML = `<div class="bm-modal-empty" style="color:#ef4444;">无法读取目录: ${data.error || '权限不足'}</div>`;
-        return;
-      }
-
-      activePath = data.current_path;
-      parentPath = data.parent_path;
-      pathInput.value = activePath;
-
-      // 渲染快捷方式与驱动器
-      shortcutsWrap.innerHTML = `<span style="font-size: 11px; color: #71717a; margin-right: 4px;">快捷位置:</span>`;
-      (data.shortcuts || []).forEach((sc) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "bm-modal-shortcut-btn";
-        btn.textContent = sc.name;
-        btn.addEventListener("click", () => loadDirectory(sc.path));
-        shortcutsWrap.appendChild(btn);
-      });
-
-      (data.drives || []).forEach((drv) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "bm-modal-shortcut-btn";
-        btn.textContent = `💾 ${drv}`;
-        btn.addEventListener("click", () => loadDirectory(`${drv}\\`));
-        shortcutsWrap.appendChild(btn);
-      });
-
-      // 渲染子文件夹列表
-      folderList.innerHTML = "";
-      if (!data.folders || data.folders.length === 0) {
-        folderList.innerHTML = `<div class="bm-modal-empty">(当前目录下无子文件夹)</div>`;
-        return;
-      }
-
-      data.folders.forEach((folderName) => {
-        const item = document.createElement("div");
-        item.className = "bm-modal-folder-item";
-        item.innerHTML = `
-          <span class="bm-modal-folder-icon">📁</span>
-          <span class="bm-modal-folder-name">${folderName}</span>
-        `;
-        item.addEventListener("click", () => {
-          const sep = activePath.includes("/") && !activePath.includes("\\") ? "/" : "\\";
-          const next = activePath.endsWith(sep) ? `${activePath}${folderName}` : `${activePath}${sep}${folderName}`;
-          loadDirectory(next);
-        });
-        folderList.appendChild(item);
-      });
-    } catch (err) {
-      folderList.innerHTML = `<div class="bm-modal-empty" style="color:#ef4444;">加载异常: ${err.message}</div>`;
-    }
-  }
-
-  upBtn.addEventListener("click", () => {
-    if (parentPath) {
-      loadDirectory(parentPath);
-    }
-  });
-
-  mkdirBtn.addEventListener("click", async () => {
-    const name = prompt("请输入新建文件夹名称:");
-    if (!name || !name.trim()) return;
-    try {
-      const resp = await fetch("/batch_master/create_folder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parent: activePath, name: name.trim() })
-      });
-      const res = await resp.json();
-      if (res.success && res.created_path) {
-        loadDirectory(res.created_path);
-      } else {
-        alert("创建文件夹失败: " + (res.error || "未知原因"));
-      }
-    } catch (err) {
-      alert("创建文件夹异常: " + err.message);
-    }
-  });
-
-  pathInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      loadDirectory(pathInput.value.trim());
-    }
-  });
-
-  loadDirectory(activePath);
-}
 
 app.registerExtension({
   name: "ComfyUI.BatchMaster.BatchImageExport",
@@ -408,20 +219,40 @@ app.registerExtension({
       node.setDirtyCanvas(true, true);
     });
 
-    // 5. 点击【📁 选择目录】调起网页端可视化目录选择弹窗 (100% 出现、永不卡死)
-    pickBtn.addEventListener("click", (e) => {
+    // 5. 点击【📁 选择目录】直接调起 Windows 系统原生文件夹选择器（如选图片般秒级直出）
+    pickBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const curVal = dirInput.value.trim();
-      openFolderModal(curVal, (chosen) => {
-        dirInput.value = chosen;
-        if (dirWidget) {
-          dirWidget.value = chosen;
-          if (dirWidget.callback) dirWidget.callback(chosen);
+      const btnText = container.querySelector("#bm-btn-text");
+      const origText = btnText ? btnText.textContent : "选择目录";
+      if (btnText) btnText.textContent = "正在选择...";
+      pickBtn.style.opacity = "0.7";
+      pickBtn.style.pointerEvents = "none";
+
+      try {
+        const curVal = dirInput.value.trim();
+        const resp = await fetch("/batch_master/pick_folder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initial_dir: curVal })
+        });
+        const res = await resp.json();
+        if (res.success && res.folder_path) {
+          dirInput.value = res.folder_path;
+          if (dirWidget) {
+            dirWidget.value = res.folder_path;
+            if (dirWidget.callback) dirWidget.callback(res.folder_path);
+          }
+          node.setDirtyCanvas(true, true);
         }
-        node.setDirtyCanvas(true, true);
-      });
+      } catch (err) {
+        console.error("调用系统文件夹选择器失败:", err);
+      } finally {
+        if (btnText) btnText.textContent = origText;
+        pickBtn.style.opacity = "";
+        pickBtn.style.pointerEvents = "";
+      }
     });
 
     // 挂载至节点 DOM Widget
