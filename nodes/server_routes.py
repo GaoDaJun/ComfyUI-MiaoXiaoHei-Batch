@@ -380,26 +380,10 @@ try:
                 if not initial_dir or not os.path.exists(initial_dir):
                     initial_dir = output_dir
 
-                # 独立子进程脚本：自带主线程与 Windows 事件循环，绝对不卡死，置顶显示
-                code = f'''
-import sys
-try:
-    import tkinter as tk
-    from tkinter import filedialog
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes("-topmost", True)
-    path = filedialog.askdirectory(title="请选择批量生图保存目录", initialdir={repr(initial_dir)})
-    root.destroy()
-    if path:
-        print("SELECTED:" + path)
-    else:
-        print("CANCELED")
-except Exception as e:
-    print("ERROR:" + str(e))
-'''
+                # 调用独立置顶选择器脚本：自带焦点置顶与双重容错（Tkinter + PowerShell）
+                picker_script = os.path.join(os.path.dirname(__file__), "folder_picker_dialog.py")
                 proc = await asyncio.create_subprocess_exec(
-                    sys.executable, "-c", code,
+                    sys.executable, picker_script, initial_dir,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )

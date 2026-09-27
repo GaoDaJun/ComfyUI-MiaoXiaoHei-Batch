@@ -57,6 +57,7 @@ app.registerExtension({
       const res = origConfigure ? origConfigure.apply(this, arguments) : undefined;
       hideExportWidgets(node);
       setTimeout(syncWidgetsToUI, 50);
+      setTimeout(ensureNodeDimensions, 60);
       return res;
     };
 
@@ -132,11 +133,15 @@ app.registerExtension({
       if (prefixWidget) {
         nameInput.value = prefixWidget.value || "";
       }
-      if (suffixWidget) {
-        suffixInput.value = suffixWidget.value || node.properties?.["filename_suffix"] || "";
-      } else if (node.properties?.["filename_suffix"]) {
-        suffixInput.value = node.properties["filename_suffix"];
+
+      // 彻底清理旧工作流中可能残留的 naming_pattern 历史字符串
+      let suf = suffixWidget?.value || node.properties?.["filename_suffix"] || "";
+      if (suf.includes("前缀") || suf.includes("原文件名") || suf.includes("序号") || suf.includes("时间戳") || suf.length > 20) {
+        suf = "";
+        if (suffixWidget) suffixWidget.value = "";
+        if (node.properties) node.properties["filename_suffix"] = "";
       }
+      suffixInput.value = suf;
 
       if (formatWidget) {
         const curFmt = (formatWidget.value || "png").toLowerCase();
@@ -195,21 +200,30 @@ app.registerExtension({
       node.setDirtyCanvas(true, true);
     });
 
-    // 5. 点击【📁 选择目录】调起系统原生置顶选择文件夹对话框 (独立子进程无死锁)
+    // 5. 点击【📁 选择目录】调起系统原生置顶选择文件夹对话框 (独立子进程双重置顶防卡死)
+    let isPicking = false;
     pickBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
+      if (isPicking) return;
+      isPicking = true;
       pickBtn.disabled = true;
       btnText.textContent = "选择中...";
+
+      // 60秒安全超时控制器，防止网络异常导致按钮永久卡住
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 60000);
 
       try {
         const curPath = dirInput.value.trim();
         const resp = await fetch("/batch_master/pick_folder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ initial_dir: curPath })
+          body: JSON.stringify({ initial_dir: curPath }),
+          signal: controller.signal
         });
+        clearTimeout(timer);
         const res = await resp.json();
         if (res.success && res.folder_path) {
           dirInput.value = res.folder_path;
@@ -220,9 +234,10 @@ app.registerExtension({
           node.setDirtyCanvas(true, true);
         }
       } catch (err) {
-        console.error("[BatchImageExport] 调起目录选择失败:", err);
-        alert("调起系统目录选择器失败: " + err.message);
+        console.warn("[BatchImageExport] 目录选择完成或退出:", err);
       } finally {
+        clearTimeout(timer);
+        isPicking = false;
         pickBtn.disabled = false;
         btnText.textContent = "选择目录";
       }
@@ -236,42 +251,27 @@ app.registerExtension({
       setValue(v) {},
     });
 
-    // 设定 DOM Widget 占用高度
+    // 设定 DOM Widget 占用高度 (225px 确保底部充足内边距不截断)
     domWidget.computeSize = function (width) {
       const currentW = node.size && node.size[0] > 0 ? node.size[0] : (width || 440);
-      return [currentW, 208];
+      return [currentW, 225];
     };
 
-    // 锁定节点尺寸，紧凑精致
+    // 紧凑贴合大背景尺寸，消除下方过长空白区
     function ensureNodeDimensions() {
-      const minW = 440;
-      const minH = 265;
-      let changed = false;
-      if (!node.size) {
-        node.size = [minW, minH];
-        changed = true;
-      } else {
-        if (node.size[0] < minW) {
-          node.size[0] = minW;
-          changed = true;
+      const targetW = 440;
+      const targetH = 320;
+      if (!node.size || node.size[0] !== targetW || Math.abs(node.size[1] - targetH) > 5) {
+        node.size = [targetW, targetH];
+        if (typeof node.setSize === "function") {
+          node.setSize([targetW, targetH]);
         }
-        if (node.size[1] < minH) {
-          node.size[1] = minH;
-          changed = true;
-        }
-      }
-      if (changed && typeof node.setSize === "function") {
-        node.setSize([node.size[0], node.size[1]]);
         app.canvas?.setDirty(true, true);
       }
     }
 
-    const origComputeSize = node.computeSize;
     node.computeSize = function (out) {
-      const s = origComputeSize ? origComputeSize.apply(this, arguments) : [440, 265];
-      s[0] = Math.max(s[0] || 440, 440);
-      s[1] = Math.max(s[1] || 265, 265);
-      return s;
+      return [440, 320];
     };
 
     hideExportWidgets(node);
@@ -279,5 +279,6 @@ app.registerExtension({
     syncWidgetsToUI();
     setTimeout(ensureNodeDimensions, 50);
     setTimeout(syncWidgetsToUI, 100);
+    setTimeout(ensureNodeDimensions, 200);
   },
 });
