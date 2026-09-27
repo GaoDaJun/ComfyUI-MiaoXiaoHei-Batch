@@ -168,6 +168,16 @@ class BatchResolutionPreset:
     FUNCTION = "calculate"
     CATEGORY = "喵小黑"
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, **kwargs):
+        """
+        核心防拦截机制：
+        告诉 ComfyUI 校验器本节点自行负责输入合法性，
+        彻底绕过 execution.py 中的严格字符串列表比对，
+        确保旧工作流保存的'无 / 原生 (如1080P)'或任何微调字符均绝对不被拦截！
+        """
+        return True
+
     def calculate(
         self,
         aspect_ratio: str,
@@ -179,11 +189,15 @@ class BatchResolutionPreset:
         custom_width: int = 1024,
         custom_height: int = 1024,
     ):
+        alignment_str = str(alignment or "")
+        latent_type_str = str(latent_type or "")
+        res_tier_str = str(resolution_tier or "")
+
         # 1. 判定分辨率来源
         tier_key = "1K"
-        if "1.5K" in resolution_tier:
+        if "1.5K" in res_tier_str:
             tier_key = "1.5K"
-        elif "2K" in resolution_tier:
+        elif "2K" in res_tier_str:
             tier_key = "2K"
 
         if aspect_ratio in PRESET_RESOLUTIONS:
@@ -203,18 +217,18 @@ class BatchResolutionPreset:
 
         # 3. 步长对齐处理
         step = 1
-        if "16倍数" in alignment:
+        if "16倍数" in alignment_str:
             step = 16
-        elif "32倍数" in alignment:
+        elif "32倍数" in alignment_str:
             step = 32
-        elif "64倍数" in alignment:
+        elif "64倍数" in alignment_str:
             step = 64
 
         final_w = align_dimension(w, step)
         final_h = align_dimension(h, step)
 
         # 4. 生成空 Latent
-        channels = 16 if "16通道" in latent_type else 4
+        channels = 16 if "16通道" in latent_type_str else 4
 
         # 对于 FLUX (16通道)，潜空间尺寸必须为偶数 (即像素为 16 的倍数)，自动防崩溃保护
         if channels == 16:

@@ -70,15 +70,23 @@ app.registerExtension({
     const swapWidget = findWidget("swap_dimensions");
     const customWidthWidget = findWidget("custom_width");
     const customHeightWidget = findWidget("custom_height");
+    const alignWidget = findWidget("alignment");
     const latentWidget = findWidget("latent_type");
 
     // 自动平滑升级旧工作流中保存的配置值，防止报“无效输入”
-    if (alignWidget && alignWidget.value === "无 / 原生 (如1080P)") {
-      alignWidget.value = "无 / 原生 (如1080P/千问)";
+    function migrateLegacyValues() {
+      if (alignWidget) {
+        if (alignWidget.value === "无 / 原生 (如1080P)" || alignWidget.value === "无 / 原生") {
+          alignWidget.value = "无 / 原生 (如1080P/千问)";
+        }
+      }
+      if (latentWidget) {
+        if (latentWidget.value === "SDXL / SD1.5 (4通道)") {
+          latentWidget.value = "SDXL / SD1.5 / 千问 (4通道)";
+        }
+      }
     }
-    if (latentWidget && latentWidget.value === "SDXL / SD1.5 (4通道)") {
-      latentWidget.value = "SDXL / SD1.5 / 千问 (4通道)";
-    }
+    migrateLegacyValues();
 
     // 创建 DOM 容器
     const container = document.createElement("div");
@@ -357,6 +365,7 @@ app.registerExtension({
     const origOnConfigure = node.onConfigure;
     node.onConfigure = function () {
       if (origOnConfigure) origOnConfigure.apply(this, arguments);
+      migrateLegacyValues();
       setTimeout(updateUI, 50);
       setTimeout(ensureNodeDimensions, 100);
     };
