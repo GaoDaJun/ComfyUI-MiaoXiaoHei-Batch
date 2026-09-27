@@ -457,7 +457,21 @@ try:
                     data = {}
 
                 output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
-                desktop_dir = os.path.normpath(os.path.join(os.path.expanduser("~"), "Desktop"))
+
+                # 获取用户真实的桌面路径 (兼容重定向到 D:\桌面 等情况)
+                desktop_dir = ""
+                if sys.platform == "win32":
+                    try:
+                        import winreg
+                        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")
+                        desktop_raw, _ = winreg.QueryValueEx(key, "Desktop")
+                        desktop_dir = os.path.normpath(os.path.expandvars(desktop_raw))
+                    except Exception:
+                        pass
+                if not desktop_dir or not os.path.exists(desktop_dir):
+                    desktop_dir = os.path.normpath(os.path.join(os.path.expanduser("~"), "Desktop"))
+                if not os.path.exists(desktop_dir) and os.path.exists("D:\\桌面"):
+                    desktop_dir = "D:\\桌面"
 
                 req_path = str(data.get("path", "")).strip()
                 if not req_path:
