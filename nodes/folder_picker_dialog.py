@@ -16,10 +16,16 @@ def main():
         from tkinter import filedialog
 
         root = tk.Tk()
-        root.withdraw()
-        root.wm_attributes("-topmost", 1)
+        # 置顶无边框 0 尺寸宿主窗口，强制获得 Windows 焦点并置顶
+        root.overrideredirect(True)
+        root.geometry("0x0+0+0")
+        root.deiconify()
+        root.lift()
+        root.focus_force()
+        root.attributes("-topmost", True)
 
         chosen = filedialog.askdirectory(
+            parent=root,
             title="请选择批量生图保存目录",
             initialdir=initial_dir
         )
@@ -38,7 +44,9 @@ def main():
                 "$f.Description = '请选择批量生图保存目录';\n"
                 f"$f.SelectedPath = '{clean_dir}';\n"
                 "$f.ShowNewFolderButton = $true;\n"
-                "if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {\n"
+                "$top = New-Object System.Windows.Forms.Form;\n"
+                "$top.TopMost = $true;\n"
+                "if ($f.ShowDialog($top) -eq [System.Windows.Forms.DialogResult]::OK) {\n"
                 "  Write-Host ('SELECTED:' + $f.SelectedPath)\n"
                 "} else {\n"
                 "  Write-Host 'CANCELED'\n"
