@@ -441,5 +441,100 @@ try:
                 return web.json_response({"success": True, "opened": full_path})
             except Exception as e:
                 return web.json_response({"success": False, "error": str(e)}, status=500)
+
+        @routes.post("/batch_master/list_folders")
+        async def list_folders(request):
+            """
+            列出指定路径下的子文件夹、盘符与常用快捷目录（桌面、ComfyUI Output 等）
+            """
+            import sys
+            import string
+
+            try:
+                try:
+                    data = await request.json()
+                except Exception:
+                    data = {}
+
+                output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
+                desktop_dir = os.path.normpath(os.path.join(os.path.expanduser("~"), "Desktop"))
+
+                req_path = str(data.get("path", "")).strip()
+                if not req_path:
+                    req_path = output_dir
+
+                # 相对路径转绝对路径
+                if not os.path.isabs(req_path):
+                    clean_rel = req_path.replace("\\", "/")
+                    if clean_rel.startswith("output/"):
+                        clean_rel = clean_rel[7:]
+                    req_path = os.path.normpath(os.path.join(output_dir, clean_rel))
+                else:
+                    req_path = os.path.normpath(req_path)
+
+                if not os.path.exists(req_path):
+                    req_path = output_dir
+
+                # 常用快捷路径
+                shortcuts = []
+                if os.path.exists(desktop_dir):
+                    shortcuts.append({"name": "🖥️ 桌面", "path": desktop_dir})
+                if os.path.exists(output_dir):
+                    shortcuts.append({"name": "📦 ComfyUI output", "path": output_dir})
+
+                # 可用驱动器盘符 (Windows)
+                drives = []
+                if sys.platform == "win32":
+                    for letter in string.ascii_uppercase:
+                        d_path = f"{letter}:\\"
+                        if os.path.exists(d_path):
+                            drives.append(f"{letter}:")
+
+                # 获取上一级目录
+                parent_path = os.path.dirname(req_path)
+                if parent_path == req_path:
+                    parent_path = None
+
+                # 列出子文件夹
+                subfolders = []
+                try:
+                    with os.scandir(req_path) as entries:
+                        for entry in entries:
+                            try:
+                                if entry.is_dir(follow_symlinks=False) and not entry.name.startswith("."):
+                                    subfolders.append(entry.name)
+                            except PermissionError:
+                                pass
+                    subfolders.sort(key=lambda s: s.lower())
+                except Exception:
+                    pass
+
+                return web.json_response({
+                    "success": True,
+                    "current_path": req_path,
+                    "parent_path": parent_path,
+                    "shortcuts": shortcuts,
+                    "drives": drives,
+                    "folders": subfolders
+                })
+            except Exception as e:
+                return web.json_response({"success": False, "error": str(e)}, status=500)
+
+        @routes.post("/batch_master/create_folder")
+        async def create_folder(request):
+            """
+            在当前目录下新建子文件夹
+            """
+            try:
+                data = await request.json()
+                parent = data.get("parent", "").strip()
+                name = data.get("name", "").strip()
+                if not parent or not name:
+                    return web.json_response({"success": False, "error": "目录或名称不能为空"}, status=400)
+                new_path = os.path.normpath(os.path.join(parent, name))
+                os.makedirs(new_path, exist_ok=True)
+                return web.json_response({"success": True, "created_path": new_path})
+            except Exception as e:
+                return web.json_response({"success": False, "error": str(e)}, status=500)
 except Exception as e:
     print(f"[ComfyUI-Batch-Master] 警告：初始化服务端路由时出现异常: {e}")

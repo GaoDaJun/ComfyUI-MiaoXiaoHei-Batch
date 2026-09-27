@@ -1327,7 +1327,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 14px 18px 14px;
+  padding: 12px 14px 22px 14px;
   box-sizing: border-box;
   background: #222225;
   border-radius: 10px;
@@ -1465,15 +1465,259 @@
   background: #2e2e33;
 }
 
-.bm-btn-pick-folder:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
 .bm-folder-icon {
   font-size: 14px;
   line-height: 1;
 }
+
+/* ---------------- 网页端可视化目录选择弹窗 (100% 可用、零死锁、零遮挡) ---------------- */
+.bm-folder-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: bmFadeIn 0.15s ease;
+}
+
+@keyframes bmFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.bm-folder-modal-dialog {
+  width: 580px;
+  max-width: 92vw;
+  max-height: 82vh;
+  background: #1e1e24;
+  border: 1px solid #383844;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #e4e4e7;
+}
+
+.bm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #2e2e38;
+}
+
+.bm-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f4f4f5;
+}
+
+.bm-modal-close {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.bm-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bm-modal-body {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* 快捷位置与盘符 */
+.bm-modal-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.bm-modal-shortcut-btn {
+  background: #272730;
+  border: 1px solid #383846;
+  color: #d4d4d8;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.bm-modal-shortcut-btn:hover {
+  background: #373746;
+  border-color: #4f4f64;
+  color: #fff;
+}
+
+/* 当前路径栏 */
+.bm-modal-path-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bm-modal-path-input {
+  flex: 1;
+  background: #141418;
+  border: 1px solid #2d2d38;
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 10px;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-family: monospace;
+  outline: none;
+}
+
+.bm-modal-path-input:focus {
+  border-color: #525266;
+}
+
+.bm-modal-btn-sub {
+  background: #2a2a35;
+  border: 1px solid #3a3a48;
+  color: #d4d4d8;
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.bm-modal-btn-sub:hover {
+  background: #383848;
+  color: #fff;
+}
+
+/* 文件夹列表视窗 */
+.bm-modal-folder-list {
+  flex: 1;
+  min-height: 220px;
+  max-height: 320px;
+  background: #141418;
+  border: 1px solid #282834;
+  border-radius: 8px;
+  padding: 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bm-modal-folder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #d4d4d8;
+  transition: background 0.1s;
+}
+
+.bm-modal-folder-item:hover {
+  background: #252532;
+  color: #ffffff;
+}
+
+.bm-modal-folder-icon {
+  font-size: 15px;
+}
+
+.bm-modal-folder-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bm-modal-empty {
+  text-align: center;
+  color: #71717a;
+  padding: 30px 0;
+  font-size: 12px;
+}
+
+.bm-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid #2e2e38;
+  background: #1a1a20;
+}
+
+.bm-modal-footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+.bm-modal-btn-cancel {
+  background: #272730;
+  border: 1px solid #383846;
+  color: #9ca3af;
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.bm-modal-btn-cancel:hover {
+  background: #353542;
+  color: #fff;
+}
+
+.bm-modal-btn-confirm {
+  background: #10b981;
+  border: 1px solid #34d399;
+  color: #ffffff;
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s;
+}
+
+.bm-modal-btn-confirm:hover {
+  background: #059669;
+}
+
 
 
 
