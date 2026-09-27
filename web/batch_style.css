@@ -1492,9 +1492,9 @@
 }
 
 .bm-folder-modal-dialog {
-  width: 580px;
-  max-width: 92vw;
-  max-height: 82vh;
+  width: 760px;
+  max-width: 94vw;
+  max-height: 88vh;
   background: #1e1e24;
   border: 1px solid #383844;
   border-radius: 12px;
@@ -1510,12 +1510,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
+  padding: 16px 22px;
   border-bottom: 1px solid #2e2e38;
 }
 
 .bm-modal-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -1541,10 +1541,10 @@
 }
 
 .bm-modal-body {
-  padding: 14px 18px;
+  padding: 16px 22px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   overflow: hidden;
   flex: 1;
 }
@@ -1562,7 +1562,7 @@
   border: 1px solid #383846;
   color: #d4d4d8;
   font-size: 12px;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
@@ -1587,10 +1587,10 @@
   background: #141418;
   border: 1px solid #2d2d38;
   border-radius: 6px;
-  height: 34px;
-  padding: 0 10px;
+  height: 38px;
+  padding: 0 12px;
   color: #e4e4e7;
-  font-size: 12px;
+  font-size: 13px;
   font-family: monospace;
   outline: none;
 }
@@ -1604,14 +1604,14 @@
   border: 1px solid #3a3a48;
   color: #d4d4d8;
   border-radius: 6px;
-  height: 34px;
-  padding: 0 10px;
-  font-size: 12px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.15s;
 }
 
@@ -1623,12 +1623,12 @@
 /* 文件夹列表视窗 */
 .bm-modal-folder-list {
   flex: 1;
-  min-height: 220px;
-  max-height: 320px;
+  min-height: 340px;
+  max-height: 480px;
   background: #141418;
   border: 1px solid #282834;
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1638,11 +1638,11 @@
 .bm-modal-folder-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 10px;
+  padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 13.5px;
   color: #d4d4d8;
   transition: background 0.1s;
 }
@@ -1653,7 +1653,7 @@
 }
 
 .bm-modal-folder-icon {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .bm-modal-folder-name {
@@ -1666,22 +1666,22 @@
 .bm-modal-empty {
   text-align: center;
   color: #71717a;
-  padding: 30px 0;
-  font-size: 12px;
+  padding: 40px 0;
+  font-size: 13px;
 }
 
 .bm-modal-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 18px;
+  padding: 14px 22px;
   border-top: 1px solid #2e2e38;
   background: #1a1a20;
 }
 
 .bm-modal-footer-right {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .bm-modal-btn-cancel {
@@ -1689,9 +1689,9 @@
   border: 1px solid #383846;
   color: #9ca3af;
   border-radius: 6px;
-  height: 34px;
-  padding: 0 14px;
-  font-size: 12px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -1705,9 +1705,9 @@
   border: 1px solid #34d399;
   color: #ffffff;
   border-radius: 6px;
-  height: 34px;
-  padding: 0 18px;
-  font-size: 12px;
+  height: 38px;
+  padding: 0 20px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
