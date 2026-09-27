@@ -285,5 +285,110 @@ try:
                 return web.json_response({"success": True})
             except Exception as e:
                 return web.json_response({"success": False, "error": str(e)}, status=500)
+
+        @routes.post("/batch_master/download_zip")
+        async def download_batch_zip(request):
+            """
+            将画廊或批次中的多张图片直接在内存中高速打包为 ZIP 文件并提供流式下载
+            """
+            import io
+            import zipfile
+            import urllib.parse
+
+            try:
+                data = await request.json()
+                items = data.get("items", [])
+                zip_name = data.get("zip_name", "batch_results.zip")
+
+                if not items:
+                    return web.json_response({"success": False, "error": "没有可供下载的图片"}, status=400)
+
+                output_base = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
+                input_base = folder_paths.get_input_directory() if folder_paths and hasattr(folder_paths, "get_input_directory") else os.path.abspath("input")
+                temp_base = folder_paths.get_temp_directory() if folder_paths and hasattr(folder_paths, "get_temp_directory") else os.path.abspath("temp")
+
+                zip_buffer = io.BytesIO()
+                count = 0
+                seen_names = set()
+
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=5) as zf:
+                    for idx, it in enumerate(items):
+                        fname = it.get("filename", "")
+                        subfolder = it.get("subfolder", "")
+                        img_type = it.get("type", "output")
+                        file_path = it.get("file_path", "")
+
+                        if not file_path or not os.path.exists(file_path):
+                            if img_type == "output":
+                                base_dir = output_base
+                            elif img_type == "input":
+                                base_dir = input_base
+                            elif img_type == "temp":
+                                base_dir = temp_base
+                            else:
+                                base_dir = output_base
+
+                            file_path = os.path.join(base_dir, subfolder, fname)
+
+                        if os.path.exists(file_path) and os.path.isfile(file_path):
+                            arc_name = fname if fname else os.path.basename(file_path)
+                            # 避免压缩包内文件名冲突
+                            if arc_name in seen_names:
+                                base, ext = os.path.splitext(arc_name)
+                                arc_name = f"{base}_{idx+1}{ext}"
+                            seen_names.add(arc_name)
+
+                            zf.write(file_path, arcname=arc_name)
+                            count += 1
+
+                if count == 0:
+                    return web.json_response({"success": False, "error": "未在服务器上找到对应的图片文件，可能已被清理"}, status=404)
+
+                zip_buffer.seek(0)
+                encoded_name = urllib.parse.quote(zip_name)
+                headers = {
+                    "Content-Type": "application/zip",
+                    "Content-Disposition": f"attachment; filename=\"{encoded_name}\"; filename*=UTF-8''{encoded_name}"
+                }
+                return web.Response(body=zip_buffer.getvalue(), headers=headers)
+            except Exception as e:
+                return web.json_response({"success": False, "error": str(e)}, status=500)
+
+        @routes.post("/batch_master/open_folder")
+        async def open_folder(request):
+            """
+            在本地系统资源管理器 (Windows Explorer / macOS Finder) 中直接打开指定文件夹
+            """
+            import subprocess
+            import platform
+
+            try:
+                data = await request.json()
+                folder_path = data.get("folder_path", "").strip()
+                if not folder_path:
+                    return web.json_response({"success": False, "error": "缺少文件夹路径"}, status=400)
+
+                # 相对路径解析
+                if not os.path.isabs(folder_path):
+                    if folder_paths and hasattr(folder_paths, "get_output_directory"):
+                        full_path = os.path.normpath(os.path.join(folder_paths.get_output_directory(), folder_path))
+                    else:
+                        full_path = os.path.abspath(folder_path)
+                else:
+                    full_path = os.path.normpath(folder_path)
+
+                os.makedirs(full_path, exist_ok=True)
+
+                sys_name = platform.system()
+                if sys_name == "Windows":
+                    os.startfile(full_path)
+                elif sys_name == "Darwin":
+                    subprocess.run(["open", full_path])
+                else:
+                    subprocess.run(["xdg-open", full_path])
+
+                return web.json_response({"success": True, "opened": full_path})
+            except Exception as e:
+                return web.json_response({"success": False, "error": str(e)}, status=500)
 except Exception as e:
     print(f"[ComfyUI-Batch-Master] 警告：初始化服务端路由时出现异常: {e}")

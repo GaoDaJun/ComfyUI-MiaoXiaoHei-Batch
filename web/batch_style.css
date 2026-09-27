@@ -1297,4 +1297,106 @@
   grid-column: span 2;
 }
 
+/* ---------------- 画廊专属：打包下载全部按钮 ---------------- */
+.bm-btn-download-all {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bm-btn-download-all:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.5));
+  border-color: #10b981;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.bm-btn-download-all:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------------- 导出节点专属面板 ---------------- */
+.bm-export-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  box-sizing: border-box;
+}
+
+.bm-export-card {
+  background: #18181f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bm-export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bm-export-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+.bm-btn-open-dir {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.bm-btn-open-dir:hover {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.bm-export-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.bm-export-meta-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.bm-export-meta-label {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.bm-export-meta-val {
+  color: #d1d5db;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+}
+
+
 

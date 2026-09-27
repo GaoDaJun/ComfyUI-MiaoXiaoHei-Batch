@@ -77,7 +77,7 @@ function setupGalleryNode(node) {
   container.className = "bm-gallery-container";
 
   container.innerHTML = `
-    <!-- 顶部状态栏与清空按钮 -->
+    <!-- 顶部状态栏与清空/下载按钮 -->
     <div class="bm-gallery-top-bar">
       <div class="bm-progress-header" style="flex: 1; margin: 0; align-items: center;">
         <span style="font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;">
@@ -85,7 +85,10 @@ function setupGalleryNode(node) {
         </span>
         <span id="bm-gallery-total" style="color: #10b981; font-weight: bold; font-size: 11px;">0 / 50 张</span>
       </div>
-      <button id="bm-gallery-clear" class="bm-btn bm-btn-reset bm-btn-compact" title="清空全部生成结果画廊">清空画廊</button>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <button id="bm-gallery-clear" class="bm-btn bm-btn-reset bm-btn-compact" title="清空全部生成结果画廊">清空画廊</button>
+        <button id="bm-gallery-download-all" class="bm-btn bm-btn-compact bm-btn-download-all" title="打包当前画廊中全部已生成的图片为 ZIP 文件下载">📦 下载全部</button>
+      </div>
     </div>
 
     <!-- 上部：5列 x 3行 (15格可视) 结果队列小卡片网格 -->
@@ -313,6 +316,63 @@ function setupGalleryNode(node) {
     latestImg.src = "";
     latestPlaceholder.style.display = "flex";
   };
+
+  // 打包全部下载 (ZIP)
+  const downloadAllBtn = container.querySelector("#bm-gallery-download-all");
+  if (downloadAllBtn) {
+    downloadAllBtn.onclick = async (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      if (!node.galleryItems || node.galleryItems.length === 0) {
+        alert("当前画廊中暂无生成的图片！");
+        return;
+      }
+
+      const origText = downloadAllBtn.innerHTML;
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.innerHTML = `<span>⏳ 打包中...</span>`;
+
+      try {
+        const batchName = node.galleryItems[0]?.subfolder?.split("/").pop() || "results";
+        const zipFileName = `batch_${batchName}_${node.galleryItems.length}张.zip`;
+
+        const resp = await fetch("/batch_master/download_zip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: node.galleryItems.map((it) => ({
+              filename: it.filename,
+              subfolder: it.subfolder,
+              type: it.type || "output",
+              file_path: it.file_path || ""
+            })),
+            zip_name: zipFileName
+          })
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || resp.statusText);
+        }
+
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = zipFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("[BatchResultGallery] 打包下载失败:", err);
+        alert("打包下载失败: " + err.message);
+      } finally {
+        downloadAllBtn.disabled = false;
+        downloadAllBtn.innerHTML = origText;
+      }
+    };
+  }
 
   // 暴露给控制器的清空接口，在新批次开始时保证画廊纯净
   node._bm_clear_gallery = () => {
