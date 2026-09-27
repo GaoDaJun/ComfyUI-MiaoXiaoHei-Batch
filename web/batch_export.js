@@ -244,10 +244,8 @@ app.registerExtension({
     function sanitizeWidgets() {
       if (node.widgets) {
         for (const w of node.widgets) {
-          if (w.name === "current_index") {
-            if (w.value === "" || w.value === undefined || isNaN(parseInt(w.value))) {
-              w.value = 1;
-            }
+          if (w.name === "overwrite") {
+            w.value = false;
           }
           if (w.name === "quality") {
             if (w.value === "" || w.value === undefined || isNaN(parseInt(w.value))) {

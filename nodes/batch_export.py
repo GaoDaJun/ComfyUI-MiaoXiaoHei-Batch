@@ -10,6 +10,7 @@
 """
 
 import os
+import re
 import json
 import time
 import numpy as np
@@ -22,6 +23,56 @@ try:
 except ImportError:
     folder_paths = None
     PromptServer = None
+
+
+def get_next_available_index(save_dir, prefix, suffix, ext, start_index=1):
+    """
+    在 save_dir 目录下，寻找下一个未被占用的编号 (>= start_index)。
+    格式为 {prefix}_{N:03d}{suffix}{ext}。
+    确保绝不循环覆盖已有文件，自动顺延递增。
+    """
+    if not os.path.exists(save_dir):
+        return start_index
+
+    escaped_p = re.escape(prefix)
+    escaped_s = re.escape(suffix) if suffix else ""
+    pattern = re.compile(
+        rf"^{escaped_p}_(\d+){escaped_s}\{re.escape(ext)}$",
+        re.IGNORECASE
+    )
+    general_pattern = re.compile(
+        rf"^{escaped_p}_(\d+)",
+        re.IGNORECASE
+    )
+
+    max_existing = 0
+    try:
+        for fname in os.listdir(save_dir):
+            m = pattern.match(fname)
+            if m:
+                try:
+                    val = int(m.group(1))
+                    if val > max_existing:
+                        max_existing = val
+                except ValueError:
+                    pass
+            else:
+                m2 = general_pattern.match(fname)
+                if m2:
+                    try:
+                        val = int(m2.group(1))
+                        if val > max_existing:
+                            max_existing = val
+                    except ValueError:
+                        pass
+    except Exception:
+        pass
+
+    target_idx = max(start_index, max_existing + 1)
+    while os.path.exists(os.path.join(save_dir, f"{prefix}_{target_idx:03d}{suffix}{ext}")):
+        target_idx += 1
+
+    return target_idx
 
 
 class BatchImageExport:
@@ -72,7 +123,7 @@ class BatchImageExport:
                     "tooltip": "输入的原文件名（从批量输入调度器的 filename 引脚连入）"
                 }),
                 "current_index": ("*", {
-                    "default": 1,
+                    "default": "",
                     "tooltip": "当前批次序号（从批量输入调度器的 index 引脚连入）"
                 }),
                 "batch_id": ("*", {
@@ -174,35 +225,32 @@ class BatchImageExport:
             except Exception:
                 orig_base = ""
 
-        # 4. 简单清晰的文件命名规则
+        # 4. 智能文件命名与自动递增序号机制 (绝不覆盖、智能累加)
         custom_name = str(filename_prefix or "").strip()
         suffix = str(filename_suffix or "").strip()
 
-        try:
-            if current_index is None or str(current_index).strip() == "":
-                c_idx = 1
-            else:
-                c_idx = int(float(str(current_index).strip()))
-        except Exception:
-            c_idx = 1
-        idx_str = f"{c_idx:03d}"
+        # 解析用户连入的序号（如果用户从外部调度器连入了明确的序号）
+        user_index = None
+        if current_index is not None and str(current_index).strip() not in ("", "None"):
+            try:
+                val = int(float(str(current_index).strip()))
+                if val > 0:
+                    user_index = val
+            except Exception:
+                user_index = None
 
-        # 构造基准文件名：
-        # - 如果填了自定义图片名称：如 "主图_001"
-        # - 没填自定义名称，但有原文件名连入：保留原图名 "原图名" (若原名空则用序号)
-        # - 都没填：默认 "Result_001"
+        # 确定命名前缀与是否需要自动序号
         if custom_name:
-            base_name = f"{custom_name}_{idx_str}"
+            prefix = custom_name
+            use_numbering = True
         elif orig_base:
-            base_name = orig_base
+            prefix = orig_base
+            use_numbering = False  # 原图名优先保留原图名，遇重名再加序号
         else:
-            base_name = f"Result_{idx_str}"
+            prefix = "Result"
+            use_numbering = True
 
-        # 拼接后缀 (如用户填写了 -v1 或 _hd)
-        if suffix:
-            base_name = f"{base_name}{suffix}"
-
-        # 5. 逐张处理并原画质/无损落盘写入本地目录 (不压缩)
+        # 5. 逐张处理并原画质/无损落盘写入本地目录 (不压缩、绝不覆盖)
         saved_paths = []
         saved_filenames = []
         download_events = []
@@ -212,17 +260,24 @@ class BatchImageExport:
             i_np = 255.0 * image_tensor.cpu().numpy()
             img = Image.fromarray(np.clip(i_np, 0, 255).astype(np.uint8))
 
-            cur_base = base_name if len(images) == 1 else f"{base_name}_{i+1}"
-            target_filename = f"{cur_base}{ext}"
-            target_path = os.path.join(full_save_dir, target_filename)
-
-            # 防重名覆盖处理
-            if not overwrite and os.path.exists(target_path):
-                dup_idx = 1
-                while os.path.exists(os.path.join(full_save_dir, f"{cur_base}_{dup_idx}{ext}")):
-                    dup_idx += 1
-                target_filename = f"{cur_base}_{dup_idx}{ext}"
+            if use_numbering:
+                start_idx = user_index if user_index is not None else 1
+                target_idx = get_next_available_index(full_save_dir, prefix, suffix, ext, start_index=start_idx)
+                target_filename = f"{prefix}_{target_idx:03d}{suffix}{ext}"
                 target_path = os.path.join(full_save_dir, target_filename)
+
+                # 更新 user_index 防止在同一个 batch 中多张图片编号重复
+                if user_index is not None:
+                    user_index = target_idx + 1
+            else:
+                # 原文件名模式：首选 原名+后缀.ext，若已存在则自动加 _001, _002 顺延，绝不覆盖
+                base_cand = f"{prefix}{suffix}"
+                target_filename = f"{base_cand}{ext}"
+                target_path = os.path.join(full_save_dir, target_filename)
+                if os.path.exists(target_path):
+                    dup_idx = get_next_available_index(full_save_dir, base_cand, "", ext, start_index=1)
+                    target_filename = f"{base_cand}_{dup_idx:03d}{ext}"
+                    target_path = os.path.join(full_save_dir, target_filename)
 
             # 嵌入 ComfyUI 流程元数据并原画质/无损保存 (不压缩)
             if pil_format == "PNG":
@@ -244,7 +299,7 @@ class BatchImageExport:
 
             saved_paths.append(target_path)
             saved_filenames.append(target_filename)
-            print(f"[喵小黑批量：自动保存导出] -> 已原画质保存至: {target_path} (批次: #{current_index})")
+            print(f"[喵小黑批量：自动保存导出] -> 已原画质保存至: {target_path} (文件: {target_filename})")
 
             # 如果开启了浏览器同步下载
             if browser_auto_download:
