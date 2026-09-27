@@ -314,6 +314,11 @@ function setupGalleryNode(node) {
     latestPlaceholder.style.display = "flex";
   };
 
+  // 暴露给控制器的清空接口，在新批次开始时保证画廊纯净
+  node._bm_clear_gallery = () => {
+    clearBtn.click();
+  };
+
   // 向队列追加结果卡片
   const appendItemToGallery = (item) => {
     grid.classList.remove("is-empty");
@@ -369,10 +374,25 @@ function setupGalleryNode(node) {
     updateLatestPreview(item, seqNumber);
   };
 
-  // 监听 WebSocket 生成完成事件
+  // 监听 WebSocket 生成完成事件 (双重严格校验：防止多浏览器标签页串流)
   api.addEventListener("batch_image_completed", (e) => {
     const data = e.detail;
-    if (data && data.item) {
+    if (!data || !data.item) return;
+
+    // 关键校验 1：校验 client_id，非当前浏览器标签页派发的任务直接拒绝
+    if (data.client_id && api.clientId && data.client_id !== api.clientId) {
+      return;
+    }
+
+    // 关键校验 2：校验 batch_id，必须与本画廊绑定的当前批次一致
+    const nodeBatchId = node.widgets?.find(w => w.name === "batch_id")?.value;
+    if (data.batch_id && nodeBatchId && data.batch_id !== nodeBatchId) {
+      return;
+    }
+
+    // 查重防止重复追加
+    const alreadyExists = node.galleryItems.some(item => item.filename === data.item.filename);
+    if (!alreadyExists) {
       appendItemToGallery(data.item);
     }
   });

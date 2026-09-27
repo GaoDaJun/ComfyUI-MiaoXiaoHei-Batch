@@ -128,11 +128,14 @@ class BatchResultGallery:
             broadcast_items.append(item_info)
 
         # 通过 WebSocket 实时向前端广播生成结果事件，触发画廊即时排队渲染
+        # 核心：精准携带 client_id 并使用 sid=curr_client_id 定向推送，多浏览器标签页严格物理隔离
         if PromptServer is not None and hasattr(PromptServer, "instance") and PromptServer.instance:
+            curr_client_id = getattr(PromptServer.instance, "client_id", None)
             for item in broadcast_items:
                 PromptServer.instance.send_sync("batch_image_completed", {
                     "batch_id": batch_id,
+                    "client_id": curr_client_id,
                     "item": item
-                })
+                }, sid=curr_client_id)
 
         return {"ui": {"batch_results": results_ui}, "result": (images,)}

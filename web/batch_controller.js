@@ -845,7 +845,15 @@ function setupLoaderNode(node) {
     for (const gNode of galleryNodes) {
       if (gNode.widgets) {
         const bIdW = gNode.widgets.find(w => w.name === "batch_id");
-        if (bIdW) bIdW.value = state.batchId;
+        if (bIdW) {
+          // 如果当前是全新启动一个新批次（从第0张开始），自动清空画廊旧图，避免多批次混杂
+          if (bIdW.value !== state.batchId && state.currentIndex === 0) {
+            if (typeof gNode._bm_clear_gallery === "function") {
+              gNode._bm_clear_gallery();
+            }
+          }
+          bIdW.value = state.batchId;
+        }
 
         const origW = gNode.widgets.find(w => w.name === "original_filename");
         if (origW) origW.value = currentOrigFilename;
@@ -861,11 +869,24 @@ function setupLoaderNode(node) {
     app.queuePrompt(0);
   };
 
-  // 监听 WebSocket 生成完成事件，自动触发下一张
+  // 监听 WebSocket 生成完成事件，自动触发下一张 (双重校验：防止多标签页串联)
   api.addEventListener("batch_image_completed", (e) => {
+    const data = e.detail;
+    if (!data) return;
+
+    // 关键校验 1：校验 client_id，非当前浏览器标签页发起的任务直接拒绝
+    if (data.client_id && api.clientId && data.client_id !== api.clientId) {
+      return;
+    }
+
+    // 关键校验 2：校验 batch_id，必须匹配当前输入调度器正在运行的批次
     const state = node.batchState;
-    if (state.status === "RUNNING") {
-      state.isExecutingStep = false;
+    if (state.status !== "RUNNING") return;
+    if (data.batch_id && state.batchId && data.batch_id !== state.batchId) {
+      return;
+    }
+
+    state.isExecutingStep = false;
 
       // 核心：标记刚完成的原图为已完成 (按文件名和索引双重记录)
       const finishedFile = state.files[state.currentIndex];
@@ -971,6 +992,20 @@ function setupLoaderNode(node) {
     if (batchIdWidget) batchIdWidget.value = "";
     const idxWidget = node.widgets?.find(w => w.name === "image_index");
     if (idxWidget) idxWidget.value = 0;
+
+    // 联动清空当前画布上的画廊节点
+    const galleryNodes = app.graph?._nodes?.filter(n => {
+      const c = n.comfyClass || n.type || "";
+      const t = n.title || "";
+      return c === "BatchResultGallery" || c === "喵小黑批量画廊" || 
+             c.includes("BatchResultGallery") || 
+             t.includes("图片结果") || t.includes("结果排队画廊") || t.includes("Result Gallery");
+    }) || [];
+    for (const gNode of galleryNodes) {
+      if (typeof gNode._bm_clear_gallery === "function") {
+        gNode._bm_clear_gallery();
+      }
+    }
 
     updateUIState();
     renderGrid();
