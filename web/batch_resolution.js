@@ -68,9 +68,17 @@ app.registerExtension({
     const aspectWidget = findWidget("aspect_ratio");
     const tierWidget = findWidget("resolution_tier");
     const swapWidget = findWidget("swap_dimensions");
-    const alignWidget = findWidget("alignment");
     const customWidthWidget = findWidget("custom_width");
     const customHeightWidget = findWidget("custom_height");
+    const latentWidget = findWidget("latent_type");
+
+    // 自动平滑升级旧工作流中保存的配置值，防止报“无效输入”
+    if (alignWidget && alignWidget.value === "无 / 原生 (如1080P)") {
+      alignWidget.value = "无 / 原生 (如1080P/千问)";
+    }
+    if (latentWidget && latentWidget.value === "SDXL / SD1.5 (4通道)") {
+      latentWidget.value = "SDXL / SD1.5 / 千问 (4通道)";
+    }
 
     // 创建 DOM 容器
     const container = document.createElement("div");

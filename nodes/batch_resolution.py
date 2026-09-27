@@ -120,8 +120,18 @@ PRESET_RESOLUTIONS = {
 
 RATIO_OPTIONS = list(PRESET_RESOLUTIONS.keys()) + ["自定义 (Custom)"]
 TIER_OPTIONS = ["1K (常用基准)", "1.5K (高清进阶)", "2K (大一倍超清)"]
-ALIGN_OPTIONS = ["无 / 原生 (如1080P/千问)", "16倍数 (FLUX推荐)", "32倍数 (通用优化)", "64倍数 (SDXL最稳)"]
-LATENT_TYPE_OPTIONS = ["FLUX / SD3 (16通道)", "SDXL / SD1.5 / 千问 (4通道)"]
+ALIGN_OPTIONS = [
+    "无 / 原生 (如1080P/千问)",
+    "无 / 原生 (如1080P)",  # 兼容历史已放置节点
+    "16倍数 (FLUX推荐)",
+    "32倍数 (通用优化)",
+    "64倍数 (SDXL最稳)",
+]
+LATENT_TYPE_OPTIONS = [
+    "FLUX / SD3 (16通道)",
+    "SDXL / SD1.5 / 千问 (4通道)",
+    "SDXL / SD1.5 (4通道)",  # 兼容历史已放置节点
+]
 
 
 def align_dimension(val: int, step: int) -> int:
