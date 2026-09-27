@@ -357,11 +357,10 @@ try:
         @routes.post("/batch_master/pick_folder")
         async def pick_folder(request):
             """
-            弹出系统原生文件夹选择对话框，供用户可视化选择本地保存目录
+            在独立主线程子进程中调起 Windows / 系统原生文件夹选择器，绝不死锁卡死
             """
             import asyncio
-            import tkinter as tk
-            from tkinter import filedialog
+            import sys
 
             try:
                 try:
@@ -381,18 +380,36 @@ try:
                 if not initial_dir or not os.path.exists(initial_dir):
                     initial_dir = output_dir
 
-                def _show_dialog():
-                    root = tk.Tk()
-                    root.withdraw()
-                    root.wm_attributes("-topmost", 1)
-                    selected = filedialog.askdirectory(parent=root, title="请选择批量生图导出目标文件夹", initialdir=initial_dir)
-                    root.destroy()
-                    return selected
+                # 独立子进程脚本：自带主线程与 Windows 事件循环，绝对不卡死，置顶显示
+                code = f'''
+import sys
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    root = tk.Tk()
+    root.withdraw()
+    root.wm_attributes("-topmost", True)
+    path = filedialog.askdirectory(title="请选择批量生图保存目录", initialdir={repr(initial_dir)})
+    root.destroy()
+    if path:
+        print("SELECTED:" + path)
+    else:
+        print("CANCELED")
+except Exception as e:
+    print("ERROR:" + str(e))
+'''
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, "-c", code,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout_data, _ = await asyncio.wait_for(proc.communicate(), timeout=300)
+                out_str = stdout_data.decode("utf-8", errors="ignore").strip()
 
-                selected_folder = await asyncio.to_thread(_show_dialog)
-                if selected_folder:
-                    selected_folder = os.path.normpath(selected_folder)
-                    return web.json_response({"success": True, "folder_path": selected_folder})
+                if "SELECTED:" in out_str:
+                    path_line = [line for line in out_str.splitlines() if line.startswith("SELECTED:")][0]
+                    chosen_folder = os.path.normpath(path_line.replace("SELECTED:", "").strip())
+                    return web.json_response({"success": True, "folder_path": chosen_folder})
                 else:
                     return web.json_response({"success": False, "canceled": True})
             except Exception as e:

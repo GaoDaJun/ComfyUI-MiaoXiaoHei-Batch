@@ -1322,287 +1322,159 @@
   cursor: not-allowed;
 }
 
-/* ---------------- 导出节点专属面板 (彻底取代原生组件) ---------------- */
-.bm-export-panel {
+/* ---------------- 导出节点专属面板 (1:1 像素级复刻极简深色高级卡片) ---------------- */
+.bm-export-card {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 6px 8px;
+  gap: 12px;
+  padding: 12px 14px;
   box-sizing: border-box;
-  background: #141418;
-  border-radius: 8px;
-  border: 1px solid var(--bm-border-color);
-  font-family: inherit;
+  background: #222225;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   user-select: none;
+  width: 100%;
 }
 
-/* 顶部品牌栏与状态 */
-.bm-export-top-bar {
+.bm-card-group {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 2px;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
 }
 
-.bm-export-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 700;
+.bm-card-label {
   font-size: 12px;
-  color: #f3f4f6;
-  letter-spacing: 0.3px;
-}
-
-.bm-export-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #34d399;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.bm-export-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 6px #10b981;
-}
-
-/* 功能卡片分区 */
-.bm-export-section {
-  background: #1c1c24;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.bm-export-sec-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.bm-export-sec-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.bm-export-sec-actions {
-  display: inline-flex;
-  gap: 5px;
-}
-
-.bm-btn-pick {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.35));
-  border: 1px solid rgba(59, 130, 246, 0.6);
-  color: #93c5fd;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.bm-btn-pick:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.45), rgba(37, 99, 235, 0.6));
-  border-color: #3b82f6;
-  color: #fff;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
-}
-
-.bm-btn-open {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.3));
-  border: 1px solid rgba(139, 92, 246, 0.5);
-  color: #c4b5fd;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.bm-btn-open:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.5));
-  border-color: #8b5cf6;
-  color: #fff;
-  box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
-}
-
-/* 目录输入框 */
-.bm-export-input-wrap {
-  width: 100%;
-}
-
-.bm-export-input {
-  width: 100%;
-  background: #121216;
-  border: 1px solid #2e2e3e;
-  border-radius: 4px;
-  color: #e5e7eb;
-  font-size: 11px;
-  padding: 4px 7px;
-  box-sizing: border-box;
-  font-family: monospace;
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.bm-export-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
-}
-
-/* 前缀输入行 */
-.bm-export-prefix-box {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.bm-export-sublabel {
-  font-size: 10px;
-  color: #9ca3af;
-}
-
-.bm-export-prefix-input {
-  width: 80px;
-  background: #121216;
-  border: 1px solid #2e2e3e;
-  border-radius: 4px;
-  color: #f3f4f6;
-  font-size: 11px;
-  padding: 2px 6px;
-  box-sizing: border-box;
-  outline: none;
   font-weight: 500;
-}
-
-.bm-export-prefix-input:focus {
-  border-color: #10b981;
-}
-
-/* 胶囊按钮组 */
-.bm-export-pills-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.bm-export-format-pills {
-  display: flex;
-  gap: 5px;
-}
-
-.bm-export-pill {
-  flex: 1 1 auto;
-  text-align: center;
-  background: #16161e;
-  border: 1px solid #2e2e3e;
   color: #9ca3af;
-  font-size: 11px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.bm-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bm-card-input {
+  background: #161618;
+  border: 1px solid #2f2f35;
+  border-radius: 6px;
+  height: 36px;
+  padding: 0 12px;
+  color: #e4e4e7;
+  font-size: 12px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bm-card-input::placeholder {
+  color: #52525b;
+  font-size: 12px;
+}
+
+.bm-card-input:focus {
+  border-color: #52525b;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.bm-input-name {
+  flex: 1.8;
+}
+
+.bm-input-suffix {
+  flex: 1;
+}
+
+.bm-input-dir {
+  flex: 1;
+}
+
+/* 分段格式切换器 Segmented Control */
+.bm-format-tabs {
+  display: flex;
+  background: #161618;
+  border: 1px solid #27272c;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bm-format-tab {
+  flex: 1;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #71717a;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
-  white-space: nowrap;
+  outline: none;
 }
 
-.bm-export-pill:hover {
-  background: #252533;
-  color: #e5e7eb;
-  border-color: #4b4b66;
+.bm-format-tab:hover:not(.active) {
+  color: #d4d4d8;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.bm-export-pill.active {
-  background: #10b981;
+.bm-format-tab.active {
+  background: #3f3f46;
   color: #ffffff;
-  border-color: #34d399;
   font-weight: 600;
-  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-/* 质量滑块 */
-.bm-export-quality-wrap {
-  display: inline-flex;
+/* 选择目录按钮 */
+.bm-btn-pick-folder {
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-}
-
-.bm-export-slider {
-  width: 70px;
-  height: 4px;
-  accent-color: #10b981;
+  background: #38383e;
+  border: 1px solid #4a4a52;
+  border-radius: 8px;
+  height: 36px;
+  padding: 0 14px;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-}
-
-.bm-export-quality-val {
-  font-size: 11px;
-  color: #10b981;
-  font-weight: 600;
-  min-width: 28px;
-}
-
-/* 底部实时预览与状态反馈 */
-.bm-export-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 2px 2px 0 2px;
-}
-
-.bm-export-sample-row,
-.bm-export-latest-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.bm-export-sample-label {
-  color: #9ca3af;
-  flex-shrink: 0;
-  font-size: 10px;
-}
-
-.bm-export-sample-tag {
-  color: #60a5fa;
-  font-family: monospace;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.bm-export-latest-label {
-  color: #34d399;
   flex-shrink: 0;
-  font-size: 10px;
+  transition: all 0.15s ease;
+  outline: none;
 }
 
-.bm-export-latest-file {
-  color: #10b981;
-  font-family: monospace;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.bm-btn-pick-folder:hover:not(:disabled) {
+  background: #44444c;
+  border-color: #585862;
 }
+
+.bm-btn-pick-folder:active:not(:disabled) {
+  background: #2e2e33;
+}
+
+.bm-btn-pick-folder:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.bm-folder-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
 
 
 

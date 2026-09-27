@@ -47,29 +47,23 @@ class BatchImageExport:
                     "tooltip": "模型 (FLUX/千问/SD) 输出的生成图像"
                 }),
                 "save_directory": ("STRING", {
-                    "default": "output/batch_export",
+                    "default": "",
                     "multiline": False,
-                    "tooltip": "保存目标文件夹。支持任意绝对路径（如 D:/生图结果 或 D:\\Photos）或相对路径，自动创建目录"
+                    "tooltip": "自定义图片保存目录 (可选)，留空则保存至默认 output/batch_export"
                 }),
                 "filename_prefix": ("STRING", {
-                    "default": "Result",
+                    "default": "",
                     "multiline": False,
-                    "tooltip": "文件名自定义前缀"
+                    "tooltip": "自定义图片名称 (可不填)"
                 }),
-                "naming_pattern": (cls.NAMING_PATTERNS, {
-                    "default": "前缀_三位序号_原名 (如 Result_001_pic.jpg)",
-                    "tooltip": "文件命名规则"
+                "filename_suffix": ("STRING", {
+                    "default": "",
+                    "multiline": False,
+                    "tooltip": "自定义后缀 (如:-v1)"
                 }),
                 "format": (cls.FORMAT_OPTIONS, {
                     "default": "png",
-                    "tooltip": "导出图片格式"
-                }),
-                "quality": ("INT", {
-                    "default": 95,
-                    "min": 10,
-                    "max": 100,
-                    "step": 1,
-                    "tooltip": "压缩质量（对 JPG 和 WEBP 格式生效，PNG 为无损压缩）"
+                    "tooltip": "保存格式 (PNG/JPG/WEBP)"
                 }),
             },
             "optional": {
@@ -88,6 +82,16 @@ class BatchImageExport:
                     "default": "",
                     "multiline": False,
                     "tooltip": "当前批次 ID"
+                }),
+                "naming_pattern": (cls.NAMING_PATTERNS, {
+                    "default": "前缀_三位序号_原名 (如 Result_001_pic.jpg)",
+                }),
+                "quality": ("INT", {
+                    "default": 100,
+                    "min": 10,
+                    "max": 100,
+                    "step": 1,
+                    "tooltip": "导出画质（默认100%满画质不压缩）"
                 }),
                 "overwrite": ("BOOLEAN", {
                     "default": False,
@@ -122,40 +126,41 @@ class BatchImageExport:
     def export_image(
         self,
         images,
-        save_directory="output/batch_export",
-        filename_prefix="Result",
-        naming_pattern="前缀_三位序号_原名 (如 Result_001_pic.jpg)",
+        save_directory="",
+        filename_prefix="",
+        filename_suffix="",
         format="png",
-        quality=95,
         original_filename="",
         current_index=1,
         batch_id="",
+        quality=100,
+        naming_pattern=None,
         overwrite=False,
         browser_auto_download=False,
         prompt=None,
         extra_pnginfo=None,
+        **kwargs,
     ):
         # 1. 规范化并确定保存目录
         save_dir = str(save_directory or "").strip()
-        if not save_dir:
-            save_dir = "batch_export"
-
         output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
 
-        # 如果不是绝对路径，则以 ComfyUI 默认 output 目录为基准
-        if not os.path.isabs(save_dir):
+        # 如果未指定，则默认存入 output/batch_export
+        if not save_dir:
+            full_save_dir = os.path.normpath(os.path.join(output_dir, "batch_export"))
+        elif os.path.isabs(save_dir):
+            full_save_dir = os.path.normpath(save_dir)
+        else:
             clean_rel = save_dir.replace("\\", "/")
             if clean_rel.startswith("output/"):
                 clean_rel = clean_rel[7:]
             full_save_dir = os.path.normpath(os.path.join(output_dir, clean_rel))
-        else:
-            full_save_dir = os.path.normpath(save_dir)
 
         os.makedirs(full_save_dir, exist_ok=True)
 
         # 2. 格式与扩展名
         fmt = str(format or "png").lower().strip()
-        if fmt == "jpg" or fmt == "jpeg":
+        if fmt in ("jpg", "jpeg"):
             ext = ".jpg"
             pil_format = "JPEG"
         elif fmt == "webp":
@@ -170,26 +175,32 @@ class BatchImageExport:
         if original_filename:
             orig_base = os.path.splitext(os.path.basename(original_filename))[0].strip()
 
-        prefix = str(filename_prefix or "Result").strip()
-        idx_str = f"{int(current_index):03d}"
+        # 4. 简单清晰的文件命名规则
+        custom_name = str(filename_prefix or "").strip()
+        suffix = str(filename_suffix or "").strip()
 
-        # 4. 根据命名模式构造基准文件名
-        pattern = str(naming_pattern or "")
-        if "原文件名" in pattern and "前缀" not in pattern:
-            base_name = orig_base if orig_base else f"{prefix}_{idx_str}"
-        elif "前缀_原文件名" in pattern:
-            base_name = f"{prefix}_{orig_base}" if orig_base else f"{prefix}_{idx_str}"
-        elif "前缀_三位序号" in pattern and "原名" not in pattern:
-            base_name = f"{prefix}_{idx_str}"
-        elif "前缀_三位序号_原名" in pattern:
-            base_name = f"{prefix}_{idx_str}_{orig_base}" if orig_base else f"{prefix}_{idx_str}"
-        elif "时间戳" in pattern:
-            ts = time.strftime("%Y%m%d_%H%M%S")
-            base_name = f"{orig_base}_{ts}" if orig_base else f"{prefix}_{idx_str}_{ts}"
+        try:
+            c_idx = int(current_index) if current_index is not None else 1
+        except Exception:
+            c_idx = 1
+        idx_str = f"{c_idx:03d}"
+
+        # 构造基准文件名：
+        # - 如果填了自定义图片名称：如 "主图_001"
+        # - 没填自定义名称，但有原文件名连入：保留原图名 "原图名" (若原名空则用序号)
+        # - 都没填：默认 "Result_001"
+        if custom_name:
+            base_name = f"{custom_name}_{idx_str}"
+        elif orig_base:
+            base_name = orig_base
         else:
-            base_name = f"{prefix}_{idx_str}"
+            base_name = f"Result_{idx_str}"
 
-        # 5. 逐张处理并落盘写入本地目录
+        # 拼接后缀 (如用户填写了 -v1 或 _hd)
+        if suffix:
+            base_name = f"{base_name}{suffix}"
+
+        # 5. 逐张处理并原画质/无损落盘写入本地目录 (不压缩)
         saved_paths = []
         saved_filenames = []
         download_events = []
@@ -211,7 +222,7 @@ class BatchImageExport:
                 target_filename = f"{cur_base}_{dup_idx}{ext}"
                 target_path = os.path.join(full_save_dir, target_filename)
 
-            # 嵌入 ComfyUI 流程元数据
+            # 嵌入 ComfyUI 流程元数据并原画质/无损保存 (不压缩)
             if pil_format == "PNG":
                 metadata = PngInfo()
                 if prompt is not None:
@@ -219,17 +230,19 @@ class BatchImageExport:
                 if extra_pnginfo is not None:
                     for k, v in extra_pnginfo.items():
                         metadata.add_text(k, json.dumps(v))
-                img.save(target_path, format="PNG", pnginfo=metadata, compress_level=4)
+                img.save(target_path, format="PNG", pnginfo=metadata, compress_level=1)
             elif pil_format == "JPEG":
                 if img.mode in ("RGBA", "P"):
                     img = img.convert("RGB")
-                img.save(target_path, format="JPEG", quality=int(quality), optimize=True)
+                # 原画质 100% 满画质导出，subsampling=0 禁止色度下采样，绝不压缩损失
+                img.save(target_path, format="JPEG", quality=100, subsampling=0)
             elif pil_format == "WEBP":
-                img.save(target_path, format="WEBP", quality=int(quality))
+                # 原画质无损导出：lossless=True 保持 100% 原始像素
+                img.save(target_path, format="WEBP", lossless=True, quality=100)
 
             saved_paths.append(target_path)
             saved_filenames.append(target_filename)
-            print(f"[喵小黑批量：自动保存导出] -> 已自动保存至: {target_path} (序号: #{current_index})")
+            print(f"[喵小黑批量：自动保存导出] -> 已原画质保存至: {target_path} (批次: #{current_index})")
 
             # 如果开启了浏览器同步下载
             if browser_auto_download:
