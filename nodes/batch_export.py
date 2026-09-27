@@ -138,15 +138,16 @@ class BatchImageExport:
         # 1. 规范化并确定保存目录
         save_dir = str(save_directory or "").strip()
         if not save_dir:
-            save_dir = "output/batch_export"
+            save_dir = "batch_export"
 
-        # 如果不是绝对路径，则以 ComfyUI 根目录或默认 output 目录为基准
+        output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
+
+        # 如果不是绝对路径，则以 ComfyUI 默认 output 目录为基准
         if not os.path.isabs(save_dir):
-            if folder_paths and hasattr(folder_paths, "get_output_directory"):
-                base_dir = folder_paths.get_output_directory()
-            else:
-                base_dir = os.path.abspath("output")
-            full_save_dir = os.path.normpath(os.path.join(base_dir, save_dir))
+            clean_rel = save_dir.replace("\\", "/")
+            if clean_rel.startswith("output/"):
+                clean_rel = clean_rel[7:]
+            full_save_dir = os.path.normpath(os.path.join(output_dir, clean_rel))
         else:
             full_save_dir = os.path.normpath(save_dir)
 

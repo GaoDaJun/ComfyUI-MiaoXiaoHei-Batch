@@ -1322,81 +1322,288 @@
   cursor: not-allowed;
 }
 
-/* ---------------- 导出节点专属面板 ---------------- */
+/* ---------------- 导出节点专属面板 (彻底取代原生组件) ---------------- */
 .bm-export-panel {
   display: flex;
   flex-direction: column;
-  padding: 4px 6px;
+  gap: 7px;
+  padding: 6px 8px;
   box-sizing: border-box;
+  background: #141418;
+  border-radius: 8px;
+  border: 1px solid var(--bm-border-color);
+  font-family: inherit;
+  user-select: none;
 }
 
-.bm-export-card {
-  background: #18181f;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 10px;
+/* 顶部品牌栏与状态 */
+.bm-export-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+.bm-export-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #f3f4f6;
+  letter-spacing: 0.3px;
+}
+
+.bm-export-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.bm-export-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+/* 功能卡片分区 */
+.bm-export-section {
+  background: #1c1c24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
-.bm-export-header {
+.bm-export-sec-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.bm-export-title {
+.bm-export-sec-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: 12px;
-  color: #e5e7eb;
+  gap: 4px;
 }
 
-.bm-btn-open-dir {
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.45);
+.bm-export-sec-actions {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.bm-btn-pick {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.35));
+  border: 1px solid rgba(59, 130, 246, 0.6);
   color: #93c5fd;
   font-size: 11px;
+  font-weight: 600;
   padding: 2px 8px;
-  cursor: pointer;
   border-radius: 4px;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.bm-btn-open-dir:hover {
-  background: rgba(59, 130, 246, 0.35);
+.bm-btn-pick:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.45), rgba(37, 99, 235, 0.6));
   border-color: #3b82f6;
   color: #fff;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
 }
 
-.bm-export-meta {
+.bm-btn-open {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(124, 58, 237, 0.3));
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bm-btn-open:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.5));
+  border-color: #8b5cf6;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+}
+
+/* 目录输入框 */
+.bm-export-input-wrap {
+  width: 100%;
+}
+
+.bm-export-input {
+  width: 100%;
+  background: #121216;
+  border: 1px solid #2e2e3e;
+  border-radius: 4px;
+  color: #e5e7eb;
+  font-size: 11px;
+  padding: 4px 7px;
+  box-sizing: border-box;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.bm-export-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+/* 前缀输入行 */
+.bm-export-prefix-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bm-export-sublabel {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.bm-export-prefix-input {
+  width: 80px;
+  background: #121216;
+  border: 1px solid #2e2e3e;
+  border-radius: 4px;
+  color: #f3f4f6;
+  font-size: 11px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+  outline: none;
+  font-weight: 500;
+}
+
+.bm-export-prefix-input:focus {
+  border-color: #10b981;
+}
+
+/* 胶囊按钮组 */
+.bm-export-pills-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bm-export-format-pills {
+  display: flex;
+  gap: 5px;
+}
+
+.bm-export-pill {
+  flex: 1 1 auto;
+  text-align: center;
+  background: #16161e;
+  border: 1px solid #2e2e3e;
+  color: #9ca3af;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.bm-export-pill:hover {
+  background: #252533;
+  color: #e5e7eb;
+  border-color: #4b4b66;
+}
+
+.bm-export-pill.active {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #34d399;
+  font-weight: 600;
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.35);
+}
+
+/* 质量滑块 */
+.bm-export-quality-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bm-export-slider {
+  width: 70px;
+  height: 4px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.bm-export-quality-val {
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 600;
+  min-width: 28px;
+}
+
+/* 底部实时预览与状态反馈 */
+.bm-export-footer {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  padding: 2px 2px 0 2px;
+}
+
+.bm-export-sample-row,
+.bm-export-latest-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
 }
 
-.bm-export-meta-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.bm-export-meta-label {
+.bm-export-sample-label {
   color: #9ca3af;
   flex-shrink: 0;
+  font-size: 10px;
 }
 
-.bm-export-meta-val {
-  color: #d1d5db;
+.bm-export-sample-tag {
+  color: #60a5fa;
+  font-family: monospace;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: monospace;
 }
+
+.bm-export-latest-label {
+  color: #34d399;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.bm-export-latest-file {
+  color: #10b981;
+  font-family: monospace;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 
 

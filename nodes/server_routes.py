@@ -354,6 +354,50 @@ try:
             except Exception as e:
                 return web.json_response({"success": False, "error": str(e)}, status=500)
 
+        @routes.post("/batch_master/pick_folder")
+        async def pick_folder(request):
+            """
+            弹出系统原生文件夹选择对话框，供用户可视化选择本地保存目录
+            """
+            import asyncio
+            import tkinter as tk
+            from tkinter import filedialog
+
+            try:
+                try:
+                    data = await request.json()
+                except Exception:
+                    data = {}
+
+                initial_dir = data.get("initial_dir", "").strip()
+                output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
+
+                if initial_dir and not os.path.isabs(initial_dir):
+                    clean_rel = initial_dir.replace("\\", "/")
+                    if clean_rel.startswith("output/"):
+                        clean_rel = clean_rel[7:]
+                    initial_dir = os.path.normpath(os.path.join(output_dir, clean_rel))
+
+                if not initial_dir or not os.path.exists(initial_dir):
+                    initial_dir = output_dir
+
+                def _show_dialog():
+                    root = tk.Tk()
+                    root.withdraw()
+                    root.wm_attributes("-topmost", 1)
+                    selected = filedialog.askdirectory(parent=root, title="请选择批量生图导出目标文件夹", initialdir=initial_dir)
+                    root.destroy()
+                    return selected
+
+                selected_folder = await asyncio.to_thread(_show_dialog)
+                if selected_folder:
+                    selected_folder = os.path.normpath(selected_folder)
+                    return web.json_response({"success": True, "folder_path": selected_folder})
+                else:
+                    return web.json_response({"success": False, "canceled": True})
+            except Exception as e:
+                return web.json_response({"success": False, "error": str(e)}, status=500)
+
         @routes.post("/batch_master/open_folder")
         async def open_folder(request):
             """
@@ -363,17 +407,23 @@ try:
             import platform
 
             try:
-                data = await request.json()
+                try:
+                    data = await request.json()
+                except Exception:
+                    data = {}
+
                 folder_path = data.get("folder_path", "").strip()
                 if not folder_path:
-                    return web.json_response({"success": False, "error": "缺少文件夹路径"}, status=400)
+                    folder_path = "batch_export"
 
-                # 相对路径解析
+                output_dir = folder_paths.get_output_directory() if folder_paths and hasattr(folder_paths, "get_output_directory") else os.path.abspath("output")
+
+                # 相对路径解析 (避免 output/output/xxx)
                 if not os.path.isabs(folder_path):
-                    if folder_paths and hasattr(folder_paths, "get_output_directory"):
-                        full_path = os.path.normpath(os.path.join(folder_paths.get_output_directory(), folder_path))
-                    else:
-                        full_path = os.path.abspath(folder_path)
+                    clean_rel = folder_path.replace("\\", "/")
+                    if clean_rel.startswith("output/"):
+                        clean_rel = clean_rel[7:]
+                    full_path = os.path.normpath(os.path.join(output_dir, clean_rel))
                 else:
                     full_path = os.path.normpath(folder_path)
 
