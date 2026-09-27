@@ -881,12 +881,12 @@ function setupLoaderNode(node) {
 
     // 关键校验 2：校验 batch_id，必须匹配当前输入调度器正在运行的批次
     const state = node.batchState;
-    if (state.status !== "RUNNING") return;
     if (data.batch_id && state.batchId && data.batch_id !== state.batchId) {
       return;
     }
 
-    state.isExecutingStep = false;
+    if (state.status === "RUNNING") {
+      state.isExecutingStep = false;
 
       // 核心：标记刚完成的原图为已完成 (按文件名和索引双重记录)
       const finishedFile = state.files[state.currentIndex];
