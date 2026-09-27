@@ -67,20 +67,16 @@ class BatchImageExport:
                 }),
             },
             "optional": {
-                "original_filename": ("STRING", {
+                "original_filename": ("*", {
                     "default": "",
-                    "multiline": False,
                     "tooltip": "输入的原文件名（从批量输入调度器的 filename 引脚连入）"
                 }),
-                "current_index": ("INT", {
+                "current_index": ("*", {
                     "default": 1,
-                    "min": 0,
-                    "max": 999999,
                     "tooltip": "当前批次序号（从批量输入调度器的 index 引脚连入）"
                 }),
-                "batch_id": ("STRING", {
+                "batch_id": ("*", {
                     "default": "",
-                    "multiline": False,
                     "tooltip": "当前批次 ID"
                 }),
                 "naming_pattern": (cls.NAMING_PATTERNS, {
@@ -172,15 +168,21 @@ class BatchImageExport:
 
         # 3. 提取原文件名基名 (去除路径与扩展名)
         orig_base = ""
-        if original_filename:
-            orig_base = os.path.splitext(os.path.basename(original_filename))[0].strip()
+        if original_filename is not None and str(original_filename).strip():
+            try:
+                orig_base = os.path.splitext(os.path.basename(str(original_filename).strip()))[0].strip()
+            except Exception:
+                orig_base = ""
 
         # 4. 简单清晰的文件命名规则
         custom_name = str(filename_prefix or "").strip()
         suffix = str(filename_suffix or "").strip()
 
         try:
-            c_idx = int(current_index) if current_index is not None else 1
+            if current_index is None or str(current_index).strip() == "":
+                c_idx = 1
+            else:
+                c_idx = int(float(str(current_index).strip()))
         except Exception:
             c_idx = 1
         idx_str = f"{c_idx:03d}"

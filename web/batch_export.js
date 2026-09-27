@@ -241,16 +241,34 @@ app.registerExtension({
     if (!isExportNode(node)) return;
 
     // 1. 彻底隐藏并关闭所有原生 widget 的绘制
-    hideExportWidgets(node);
+    function sanitizeWidgets() {
+      if (node.widgets) {
+        for (const w of node.widgets) {
+          if (w.name === "current_index") {
+            if (w.value === "" || w.value === undefined || isNaN(parseInt(w.value))) {
+              w.value = 1;
+            }
+          }
+          if (w.name === "quality") {
+            if (w.value === "" || w.value === undefined || isNaN(parseInt(w.value))) {
+              w.value = 100;
+            }
+          }
+        }
+      }
+    }
 
     const origConfigure = node.onConfigure;
     node.onConfigure = function () {
       const res = origConfigure ? origConfigure.apply(this, arguments) : undefined;
       hideExportWidgets(node);
+      sanitizeWidgets();
       setTimeout(syncWidgetsToUI, 50);
       setTimeout(ensureNodeDimensions, 60);
       return res;
     };
+
+    sanitizeWidgets();
 
     // 寻找被隐藏的原生 widgets 以同步数据
     const findWidget = (name) => (node.widgets || []).find((w) => w.name === name);
